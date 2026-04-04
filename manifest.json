@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  
+  "name": "Better SoundCloud",
+  "version": "1.0.0",
+  "description": "Cleans up SoundCloud's UI",
+
+  "icons": {
+    "16": "images/ext-icon-16.png",
+    "32": "images/ext-icon-32.png",
+    "48": "images/ext-icon-48.png",
+    "128": "images/ext-icon-128.png"
+  },
+
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["https://soundcloud.com/*"],
+
+  "action": {
+    "default_popup": "popup/popup.html"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://soundcloud.com/*"],
+      "css": ["inject.css"],
+      "js": ["scripts/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

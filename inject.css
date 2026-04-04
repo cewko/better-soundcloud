@@ -1,0 +1,38 @@
+html.sce-active {
+  /* remove bloat */
+
+  /* profile */
+  .spotlight,
+  .velvetCakeIframe,
+  
+  /* footer */
+  .mobileApps,
+  .l-footer,
+
+  /* header */
+  .header__logo,
+  [data-menu-name="library"],
+  .creatorSubscriptionsButton,
+  .header__forArtistsButton,
+  
+  /* home */
+  .insightsSidebarModule,
+  .sidebarModule:has(.webiEmbeddedModule) {
+    display: none !important;
+  }
+
+  /* visual */
+
+  /* header */
+  .selected {
+    border-bottom: none !important;
+  }
+
+  /* home */
+  .sc-pt-3x {
+    padding-top: 0 !important;
+  }
+  .tileGallery__slider {
+    padding-bottom: 16px !important;
+  }
+}
