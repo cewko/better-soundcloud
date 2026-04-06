@@ -8,9 +8,13 @@ const SELECTORS = {
     '[data-test-id="selection__title-text"]',
     '[data-test-id="velvet-cake__title-text"]',
   ].join(","),
+  player: ".playbackSoundBadge",
+  trackTitle: '.playbackSoundBadge__titleLink span[aria-hidden="true"]',
+  trackAuthor: ".playbackSoundBadge__lightLink",
+  trackLink: ".playbackSoundBadge__titleLink",
 };
 
-const hiddenSectionTitles = new Set([
+const HIDDEN_SECTION_TITLES = new Set([
   "Recently Played",
   "Events near you",
   "New crew, suggested for you",
@@ -21,148 +25,117 @@ const hiddenSectionTitles = new Set([
   "Made for you",
 ]);
 
-let mutationObserver = null;
-let trackObserver = null;
-let lastTrack = null;
 
-init();
+function createObserver(target, options, callback) {
+  let observer = null;
 
-function init() {
-  chrome.storage.sync.get(STORAGE_KEY, ({ [STORAGE_KEY]: isEnabled }) => {
-    applyExtensionState(Boolean(isEnabled));
-  });
-
-  chrome.runtime.onMessage.addListener(handleMessage);
-}
-
-function handleMessage(message) {
-  if (message?.type === "TOGGLE") {
-    applyExtensionState(Boolean(message.enabled));
-  }
-}
-
-function applyExtensionState(isEnabled) {
-  toggleRootClass(isEnabled);
-
-  if (isEnabled) {
-    hideMatchingSections();
-    startDomObserver();
-    watchTrackChange();
-  } else {
-    stopDomObserver();
-    restoreHiddenSections();
-    stopTrackObserver();
-  }
-}
-
-function toggleRootClass(isEnabled) {
-  document.documentElement.classList.toggle(ACTIVE_CLASS, isEnabled);
+  return {
+    start() {
+      if (observer) return;
+      observer = new MutationObserver(callback);
+      observer.observe(target, options)
+    },
+    stop() {
+      if (!observer) return;
+      observer.disconnect()
+      observer = null;
+    },
+    get active() {
+      return observer !== null;
+    },
+  };
 }
 
 function hideMatchingSections() {
-  const titleElements = document.querySelectorAll(SELECTORS.titles);
+  document.querySelectorAll(SELECTORS.titles).forEach((titleEl) => {
+    const text = titleEl?.textContent?.trim();
+    if (!HIDDEN_SECTION_TITLES.has(text)) return;
 
-  titleElements.forEach((titleElement) => {
-    const titleText = titleElement.textContent?.trim();
-    if (!hiddenSectionTitles.has(titleText)) return;
-
-    const section = titleElement.closest(SELECTORS.section);
+    const section = titleEl.closest(SELECTORS.section);
     if (!section || section.hasAttribute(HIDDEN_ATTR)) return;
 
-    hideSection(section);
+    section.style.display = "none";
+    section.setAttribute(HIDDEN_ATTR, "true");
   });
-}
-
-function hideSection(sectionEl) {
-  sectionEl.style.display = "none";
-  sectionEl.setAttribute(HIDDEN_ATTR, "true");
 }
 
 function restoreHiddenSections() {
-  const hiddenSections = document.querySelectorAll(
-    `${SELECTORS.section}[${HIDDEN_ATTR}]`,
-  );
-
-  hiddenSections.forEach((section) => {
-    section.style.display = "";
-    section.removeAttribute(HIDDEN_ATTR);
-  });
-}
-
-function startDomObserver() {
-  if (mutationObserver) return;
-
-  mutationObserver = new MutationObserver(() => {
-    hideMatchingSections();
-  });
-
-  mutationObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-}
-
-function stopDomObserver() {
-  if (!mutationObserver) return;
-
-  mutationObserver.disconnect();
-  mutationObserver = null;
+  document
+    .querySelectorAll(`${SELECTORS.section}[${HIDDEN_ATTR}]`)
+    .forEach((section) => {
+      section.style.display = "";
+      section.removeAttribute(HIDDEN_ATTR);
+    });
 }
 
 function extractCurrentTrack() {
-  const songTitleEl = document.querySelector(
-    '.playbackSoundBadge__titleLink span[aria-hidden="true"]',
-  );
-  const songAuthorEl = document.querySelector(".playbackSoundBadge__lightLink");
-  const linkEl = document.querySelector(".playbackSoundBadge__titleLink");
+  const titleEl  = document.querySelector(SELECTORS.trackTitle);
+  const authorEl = document.querySelector(SELECTORS.trackAuthor);
+  const linkEl   = document.querySelector(SELECTORS.trackLink);
 
-  const title = songTitleEl?.textContent?.trim() || songTitleEl?.title || "";
-  const author = songAuthorEl?.textContent?.trim() || songAuthorEl?.title || "";
-  const url = linkEl?.href || window.location.href;
-
-  return { title, author, url };
+  return {
+    title: titleEl?.textContent?.trim()  || titleEl?.title  || "",
+    author: authorEl?.textContent?.trim() || authorEl?.title || "",
+    url: linkEl?.href || window.location.href,
+  };
 }
 
-function watchTrackChange() {
-  if (trackObserver) return;
+const domObserver = createObserver(
+  document.body,
+  { childList: true, subtree: true },
+  hideMatchingSections
+);
 
-  const player = document.querySelector(".playbackSoundBadge");
+let trackObserver = null;
+let lastTrackKey = null;
 
+function ensureTrackObserver() {
+  if (trackObserver?.active) return;
+
+  const player = document.querySelector(SELECTORS.player);
   if (!player) return;
 
-  trackObserver = new MutationObserver(() => {
-    pollCurrentTrack();
-  });
-
-  trackObserver.observe(player, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-  });
+  trackObserver = createObserver(
+    player,
+    { childList: true, subtree: true, characterData: true },
+    onPlayerMutation
+  );
+  trackObserver.start()
 }
 
-function stopTrackObserver() {
-  if (!trackObserver) return;
-
-  trackObserver.disconnect();
-  trackObserver = null;
-}
-
-function pollCurrentTrack() {
+function onPlayerMutation() {
   const track = extractCurrentTrack();
-  if (!track) return;
+  const key = `${track.author}::${track.title}`;
+  if (key == lastTrackKey) return;
+  lastTrackKey = key;
 
-  const currentTrackKey = `${track.artist}::${track.title}`;
-  if (currentTrackKey === lastTrack) return;
-  lastTrack = currentTrackKey;
-
-  onTrackChange(track);
+  notifyTrackChange(track);
 }
 
-function onTrackChange(track) {
-  updateDRP(track);
+function notifyTrackChange(track) {
+  chrome.runtime.sendMessage({ type: "TRACK_CHANGE", track });
 }
 
-function updateDRP(track) {
-  console.log("UPDATE_PRESENCE_MESSAGE", track);
+function applyExtensionState(isEnabled) {
+  document.documentElement.classList.toggle(ACTIVE_CLASS, isEnabled);
+
+  if (isEnabled) {
+    hideMatchingSections();
+    domObserver.start();
+    ensureTrackObserver();
+  } else {
+    domObserver.stop();
+    restoreHiddenSections();
+    trackObserver?.stop();
+  }
 }
+
+chrome.storage.sync.get(STORAGE_KEY, ({ [STORAGE_KEY]: isEnabled }) => {
+  applyExtensionState(Boolean(isEnabled));
+})
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type === "TOGGLE") {
+    applyExtensionState(Boolean(message.enabled));
+  }
+});
