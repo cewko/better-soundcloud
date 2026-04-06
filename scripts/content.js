@@ -1,27 +1,29 @@
-const STORAGE_KEY = 'enabled';
-const ACTIVE_CLASS = 'sce-active';
-const HIDDEN_ATTR = 'data-sc-hidden';
+const STORAGE_KEY = "enabled";
+const ACTIVE_CLASS = "sce-active";
+const HIDDEN_ATTR = "data-sc-hidden";
 
 const SELECTORS = {
-  section: '.mixedModularHome__item',
+  section: ".mixedModularHome__item",
   titles: [
     '[data-test-id="selection__title-text"]',
     '[data-test-id="velvet-cake__title-text"]',
-  ].join(','),
+  ].join(","),
 };
 
 const hiddenSectionTitles = new Set([
-  'Recently Played',
-  'Events near you',
-  'New crew, suggested for you',
-  'Discover with Stations',
-  'Artists to watch out for',
-  'Curated by SoundCloud',
-  'Albums for you',
-  'Made for you',
+  "Recently Played",
+  "Events near you",
+  "New crew, suggested for you",
+  "Discover with Stations",
+  "Artists to watch out for",
+  "Curated by SoundCloud",
+  "Albums for you",
+  "Made for you",
 ]);
 
 let mutationObserver = null;
+let trackObserver = null;
+let lastTrack = null;
 
 init();
 
@@ -34,7 +36,7 @@ function init() {
 }
 
 function handleMessage(message) {
-  if (message?.type === 'TOGGLE') {
+  if (message?.type === "TOGGLE") {
     applyExtensionState(Boolean(message.enabled));
   }
 }
@@ -45,9 +47,11 @@ function applyExtensionState(isEnabled) {
   if (isEnabled) {
     hideMatchingSections();
     startDomObserver();
+    watchTrackChange();
   } else {
     stopDomObserver();
     restoreHiddenSections();
+    stopTrackObserver();
   }
 }
 
@@ -70,17 +74,17 @@ function hideMatchingSections() {
 }
 
 function hideSection(sectionEl) {
-  sectionEl.style.display = 'none';
-  sectionEl.setAttribute(HIDDEN_ATTR, 'true');
+  sectionEl.style.display = "none";
+  sectionEl.setAttribute(HIDDEN_ATTR, "true");
 }
 
 function restoreHiddenSections() {
   const hiddenSections = document.querySelectorAll(
-    `${SELECTORS.section}[${HIDDEN_ATTR}]`
+    `${SELECTORS.section}[${HIDDEN_ATTR}]`,
   );
 
   hiddenSections.forEach((section) => {
-    section.style.display = '';
+    section.style.display = "";
     section.removeAttribute(HIDDEN_ATTR);
   });
 }
@@ -103,4 +107,62 @@ function stopDomObserver() {
 
   mutationObserver.disconnect();
   mutationObserver = null;
+}
+
+function extractCurrentTrack() {
+  const songTitleEl = document.querySelector(
+    '.playbackSoundBadge__titleLink span[aria-hidden="true"]',
+  );
+  const songAuthorEl = document.querySelector(".playbackSoundBadge__lightLink");
+  const linkEl = document.querySelector(".playbackSoundBadge__titleLink");
+
+  const title = songTitleEl?.textContent?.trim() || songTitleEl?.title || "";
+  const author = songAuthorEl?.textContent?.trim() || songAuthorEl?.title || "";
+  const url = linkEl?.href || window.location.href;
+
+  return { title, author, url };
+}
+
+function watchTrackChange() {
+  if (trackObserver) return;
+
+  const player = document.querySelector(".playbackSoundBadge");
+
+  if (!player) return;
+
+  trackObserver = new MutationObserver(() => {
+    pollCurrentTrack();
+  });
+
+  trackObserver.observe(player, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+}
+
+function stopTrackObserver() {
+  if (!trackObserver) return;
+
+  trackObserver.disconnect();
+  trackObserver = null;
+}
+
+function pollCurrentTrack() {
+  const track = extractCurrentTrack();
+  if (!track) return;
+
+  const currentTrackKey = `${track.artist}::${track.title}`;
+  if (currentTrackKey === lastTrack) return;
+  lastTrack = currentTrackKey;
+
+  onTrackChange(track);
+}
+
+function onTrackChange(track) {
+  updateDRP(track);
+}
+
+function updateDRP(track) {
+  console.log("UPDATE_PRESENCE_MESSAGE", track);
 }
