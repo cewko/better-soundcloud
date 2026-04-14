@@ -12,6 +12,7 @@ const SELECTORS = {
   trackTitle: '.playbackSoundBadge__titleLink span[aria-hidden="true"]',
   trackAuthor: ".playbackSoundBadge__lightLink",
   trackLink: ".playbackSoundBadge__titleLink",
+  trackArtwork: ".playbackSoundBadge .sc-artwork[style]",
 };
 
 const HIDDEN_SECTION_TITLES = new Set([
@@ -25,7 +26,6 @@ const HIDDEN_SECTION_TITLES = new Set([
   "Made for you",
 ]);
 
-
 function createObserver(target, options, callback) {
   let observer = null;
 
@@ -33,11 +33,11 @@ function createObserver(target, options, callback) {
     start() {
       if (observer) return;
       observer = new MutationObserver(callback);
-      observer.observe(target, options)
+      observer.observe(target, options);
     },
     stop() {
       if (!observer) return;
-      observer.disconnect()
+      observer.disconnect();
       observer = null;
     },
     get active() {
@@ -69,21 +69,26 @@ function restoreHiddenSections() {
 }
 
 function extractCurrentTrack() {
-  const titleEl  = document.querySelector(SELECTORS.trackTitle);
+  const titleEl = document.querySelector(SELECTORS.trackTitle);
   const authorEl = document.querySelector(SELECTORS.trackAuthor);
-  const linkEl   = document.querySelector(SELECTORS.trackLink);
+  const linkEl = document.querySelector(SELECTORS.trackLink);
+  const artworkEl = document.querySelector(SELECTORS.trackArtwork);
+
+  const artworkUrl =
+    artworkEl?.style.backgroundImage.match(/url\("?(.+?)"?\)/)?.[1] ?? "";
 
   return {
-    title: titleEl?.textContent?.trim()  || titleEl?.title  || "",
+    title: titleEl?.textContent?.trim() || titleEl?.title || "",
     author: authorEl?.textContent?.trim() || authorEl?.title || "",
     url: linkEl?.href || window.location.href,
+    artwork: artworkUrl,
   };
 }
 
 const domObserver = createObserver(
   document.body,
   { childList: true, subtree: true },
-  hideMatchingSections
+  hideMatchingSections,
 );
 
 let trackObserver = null;
@@ -98,9 +103,9 @@ function ensureTrackObserver() {
   trackObserver = createObserver(
     player,
     { childList: true, subtree: true, characterData: true },
-    onPlayerMutation
+    onPlayerMutation,
   );
-  trackObserver.start()
+  trackObserver.start();
 }
 
 function onPlayerMutation() {
@@ -132,7 +137,7 @@ function applyExtensionState(isEnabled) {
 
 chrome.storage.sync.get(STORAGE_KEY, ({ [STORAGE_KEY]: isEnabled }) => {
   applyExtensionState(Boolean(isEnabled));
-})
+});
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message?.type === "TOGGLE") {
