@@ -1,22 +1,51 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" href="./popup.css">
-</head>
-<body>
-<div class="container">
-  <div class="header">
-    <span class="title">.</span>
-  </div>
-  <div class="main-section">
-    <div class="toggle-container" id="toggleButton">
-      <div class="text-left">ON</div>
-      <div class="text-right">OFF</div>
-      <div class="circle"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <span class="title">.</span>
+      </div>
+      <div class="main-section">
+        <div class="toggle-container" id="toggleButton">
+          <div class="text-left">ON</div>
+          <div class="text-right">OFF</div>
+          <div class="circle"></div>
+        </div>
+      </div>
+
+      <div class="main-section">
+        <div class="toggle-container" id="webhookToggleButton">
+          <div class="text-left">ON</div>
+          <div class="text-right">OFF</div>
+          <div class="circle"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="endpointInput">Webhook URL:</label>
+        <input
+          type="url"
+          id="endpointInput"
+          placeholder="https://example.com/now-playing"
+        />
+      </div>
+
+      <div class="field">
+        <label for="secretInput">Webhook Secret:</label>
+        <input
+          type="password"
+          id="secretInput"
+          placeholder="Enter webhook secret"
+        />
+      </div>
+
+      <button id="saveBtn">Save Settings</button>
+      <div id="statusMessage"></div>
     </div>
-  </div>
-</div>
-<script src="./popup.js"></script>
-</body>
+    <script src="./popup.js"></script>
+  </body>
 </html>

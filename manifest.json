@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  
+
   "name": "Better SoundCloud",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Cleans up SoundCloud's UI",
 
   "icons": {
@@ -13,7 +13,7 @@
   },
 
   "permissions": ["storage", "tabs"],
-  "host_permissions": ["https://soundcloud.com/*"],
+  "host_permissions": ["https://soundcloud.com/*", "<all_urls>"],
 
   "action": {
     "default_popup": "popup/popup.html"
