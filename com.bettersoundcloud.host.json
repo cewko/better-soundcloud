@@ -1,0 +1,9 @@
+{
+  "name": "com.bettersoundcloud.host",
+  "description": "better soundcloud discord ipc",
+  "path": "/path/to/ipc.py",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://extension-id-here/"
+  ]
+}

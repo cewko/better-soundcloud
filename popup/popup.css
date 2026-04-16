@@ -50,3 +50,15 @@ body {
 .on .circle {
     left: 60px;
 }
+
+.toggle-container.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.field input:disabled,
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

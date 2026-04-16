@@ -13,6 +13,7 @@ const SELECTORS = {
   trackAuthor: ".playbackSoundBadge__lightLink",
   trackLink: ".playbackSoundBadge__titleLink",
   trackArtwork: ".playbackSoundBadge .sc-artwork[style]",
+  playButton: ".playControls__play",
 };
 
 const HIDDEN_SECTION_TITLES = new Set([
@@ -25,6 +26,34 @@ const HIDDEN_SECTION_TITLES = new Set([
   "Albums for you",
   "Made for you",
 ]);
+
+let playObserver = null;
+let lastPlayingState = null;
+
+function ensurePlayObserver() {
+  if (playObserver?.active) return;
+
+  const btn = document.querySelector(SELECTORS.playButton);
+  if (!btn) return;
+
+  playObserver = createObserver(
+    btn,
+    { attributes: true, attributeFilter: ["class"] },
+    () => {
+      const playing = isPlaying();
+      if (playing !== lastPlayingState) {
+        lastPlayingState = playing;
+        notifyPlayState(playing);
+      }
+    }
+  );
+  playObserver.start();
+}
+
+function isPlaying() {
+  const btn = document.querySelector(SELECTORS.playButton);
+  return btn?.classList.contains("playing") ?? false;
+}
 
 function createObserver(target, options, callback) {
   let observer = null;
@@ -111,10 +140,15 @@ function ensureTrackObserver() {
 function onPlayerMutation() {
   const track = extractCurrentTrack();
   const key = `${track.author}::${track.title}`;
-  if (key == lastTrackKey) return;
-  lastTrackKey = key;
 
-  notifyTrackChange(track);
+  if (key !== lastTrackKey) {
+    lastTrackKey = key;
+    notifyTrackChange(track);
+  }
+}
+
+function notifyPlayState(playing) {
+  chrome.runtime.sendMessage({ type: "PLAY_STATE", playing })
 }
 
 function notifyTrackChange(track) {
@@ -128,10 +162,12 @@ function applyExtensionState(isEnabled) {
     hideMatchingSections();
     domObserver.start();
     ensureTrackObserver();
+    ensurePlayObserver();
   } else {
     domObserver.stop();
     restoreHiddenSections();
     trackObserver?.stop();
+    playObserver?.stop();
   }
 }
 

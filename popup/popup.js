@@ -1,19 +1,54 @@
 const toggle = document.getElementById("toggleButton");
+const DRPToggle = document.getElementById("DRPToggleButton");
 const webhookToggle = document.getElementById("webhookToggleButton");
+
+const discordClientIDInput = document.getElementById("discordClientID");
 const endpointInput = document.getElementById("endpointInput");
 const secretInput = document.getElementById("secretInput");
-const saveBtn = document.getElementById("saveBtn");
+
+const saveDRPButton = document.getElementById("saveDRPButton");
+const saveWebhookBtn = document.getElementById("saveWebhookBtn");
+
 const statusMessage = document.getElementById("statusMessage");
+
+// disable other els when the main toggle is disabled
+
+function setSubsystemsEnabled(mainEnabled) {
+  [DRPToggle, webhookToggle].forEach(el => {
+    el.classList.toggle("disabled", !mainEnabled);
+  });
+
+  [discordClientIDInput, endpointInput, secretInput, saveDRPButton, saveWebhookBtn]
+    .forEach(element => element.disabled = !mainEnabled);
+}
 
 // load saves state
 
 chrome.storage.sync.get(
-  ["enabled", "webhookEnabled", "webhookEndpoint", "webhookSecret"],
-  ({ enabled, webhookEnabled, webhookEndpoint, webhookSecret }) => {
+  [
+    "enabled", 
+    "DRPEnabled", 
+    "discordClientID", 
+    "webhookEnabled", 
+    "webhookEndpoint", 
+    "webhookSecret"
+  ],
+  ({ 
+    enabled, 
+    DRPEnabled, 
+    discordClientID, 
+    webhookEnabled, 
+    webhookEndpoint, 
+    webhookSecret 
+  }) => {
     toggle.classList.toggle("on", !!enabled);
+    DRPToggle.classList.toggle("on", !!DRPEnabled);
+    discordClientIDInput.value = discordClientID || "";
     webhookToggle.classList.toggle("on", !!webhookEnabled);
     endpointInput.value = webhookEndpoint || "";
     secretInput.value = webhookSecret || "";
+
+    setSubsystemsEnabled(!!enabled);
   },
 );
 
@@ -25,7 +60,45 @@ toggle.addEventListener("click", () => {
   chrome.storage.sync.set({ enabled: nowEnabled });
 
   notifyTab(nowEnabled);
+  chrome.runtime.sendMessage({ type: "TOGGLE", enabled: nowEnabled });
+  
+  setSubsystemsEnabled(nowEnabled);
 });
+
+// drp toggle
+
+DRPToggle.addEventListener("click", () => {
+  DRPToggle.classList.toggle("on");
+  const nowEnabled = DRPToggle.classList.contains("on");
+  chrome.storage.sync.set({ DRPEnabled: nowEnabled });
+
+  if (!nowEnabled) {
+    chrome.runtime.sendMessage({ type: "TOGGLE", enabled: false });
+  }
+});
+
+// save drp config 
+
+saveDRPButton.addEventListener("click", () => {
+  const clientID = discordClientID.value.trim();
+
+  if (!clientID) {
+    showStatus("Client ID not provided", "err");
+    return;
+  }
+
+  if (!/^\d+$/.test(clientID)) {
+    showStatus("Invalid Client ID", "err");
+    return;
+  }
+
+  chrome.storage.sync.set(
+    { discordClientID: clientID },
+    () => {
+      showStatus("Saved", "ok");
+    },
+  );
+})
 
 // webhook toggle
 
@@ -37,7 +110,7 @@ webhookToggle.addEventListener("click", () => {
 
 // save webhook config
 
-saveBtn.addEventListener("click", () => {
+saveWebhookBtn.addEventListener("click", () => {
   const endpoint = endpointInput.value.trim();
   const secret = secretInput.value.trim();
 

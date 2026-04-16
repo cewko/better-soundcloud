@@ -18,12 +18,31 @@
       </div>
 
       <div class="main-section">
+        <div class="toggle-container" id="DRPToggleButton">
+          <div class="text-left">ON</div>
+          <div class="text-right">OFF</div>
+          <div class="circle"></div>
+        </div>
+      </div>
+
+      <div class="main-section">
         <div class="toggle-container" id="webhookToggleButton">
           <div class="text-left">ON</div>
           <div class="text-right">OFF</div>
           <div class="circle"></div>
         </div>
       </div>
+
+      <div class="field">
+        <label for="secretInput">Discord Client ID:</label>
+        <input
+          type="text"
+          id="discordClientID"
+          placeholder="Enter ID"
+        />
+      </div>
+
+      <button id="saveDRPButton">Save</button>
 
       <div class="field">
         <label for="endpointInput">Webhook URL:</label>
@@ -43,7 +62,7 @@
         />
       </div>
 
-      <button id="saveBtn">Save Settings</button>
+      <button id="saveWebhookBtn">Save</button>
       <div id="statusMessage"></div>
     </div>
     <script src="./popup.js"></script>
