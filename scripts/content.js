@@ -14,6 +14,7 @@ const SELECTORS = {
   trackLink: ".playbackSoundBadge__titleLink",
   trackArtwork: ".playbackSoundBadge .sc-artwork[style]",
   playButton: ".playControls__play",
+  trackDuration: ".playbackTimeline__duration span[aria-hidden='true']",
 };
 
 const HIDDEN_SECTION_TITLES = new Set([
@@ -97,20 +98,43 @@ function restoreHiddenSections() {
     });
 }
 
+function convertDurationSeconds(string) {
+  if (!string) return null;
+
+  const parts = string.split(":").map(Number);
+
+  if (parts.length === 2) {
+    const [m, s] = parts;
+    return m * 60 + s;
+  }
+
+  if (parts.length === 3) {
+    const [h, m, s] = parts;
+    return h * 3600 + m * 60 + s;
+  }
+
+  return null;
+}
+
 function extractCurrentTrack() {
   const titleEl = document.querySelector(SELECTORS.trackTitle);
   const authorEl = document.querySelector(SELECTORS.trackAuthor);
   const linkEl = document.querySelector(SELECTORS.trackLink);
   const artworkEl = document.querySelector(SELECTORS.trackArtwork);
+  const durationEl = document.querySelector(SELECTORS.trackDuration);
 
   const artworkUrl =
     artworkEl?.style.backgroundImage.match(/url\("?(.+?)"?\)/)?.[1] ?? "";
+
+  const durationString = durationEl?.textContent?.trim() || "";
+  const durationSeconds = convertDurationSeconds(durationString);
 
   return {
     title: titleEl?.textContent?.trim() || titleEl?.title || "",
     author: authorEl?.textContent?.trim() || authorEl?.title || "",
     url: linkEl?.href || window.location.href,
     artwork: artworkUrl,
+    duration: durationSeconds,
   };
 }
 
