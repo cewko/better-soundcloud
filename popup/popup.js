@@ -11,15 +11,14 @@ const saveWebhookBtn = document.getElementById("saveWebhookBtn");
 
 const statusMessage = document.getElementById("statusMessage");
 
+const gearBtn = document.getElementById("gearBtn");
+const settingsPanel = document.getElementById("settingsPanel");
+
 // disable other els when the main toggle is disabled
 
 function setSubsystemsEnabled(mainEnabled) {
-  [DRPToggle, webhookToggle].forEach(el => {
-    el.classList.toggle("disabled", !mainEnabled);
-  });
-
   [discordClientIDInput, endpointInput, secretInput, saveDRPButton, saveWebhookBtn]
-    .forEach(element => element.disabled = !mainEnabled);
+    .forEach(el => el.disabled = !mainEnabled);
 }
 
 // load saves state
@@ -51,6 +50,13 @@ chrome.storage.sync.get(
     setSubsystemsEnabled(!!enabled);
   },
 );
+
+// settings toggle
+
+gearBtn.addEventListener("click", () => {
+  const open = settingsPanel.classList.toggle("open");
+  gearBtn.classList.toggle("open", open);
+});
 
 // extension toggle
 
@@ -95,7 +101,7 @@ saveDRPButton.addEventListener("click", () => {
   chrome.storage.sync.set(
     { discordClientID: clientID },
     () => {
-      showStatus("Saved", "ok");
+      showStatus("Success!", "ok");
     },
   );
 })
@@ -115,7 +121,7 @@ saveWebhookBtn.addEventListener("click", () => {
   const secret = secretInput.value.trim();
 
   if (!endpoint || !secret) {
-    showStatus("Endpoint and secret required", "err");
+    showStatus("URL & Password required", "err");
     return;
   }
 
@@ -127,7 +133,7 @@ saveWebhookBtn.addEventListener("click", () => {
   chrome.storage.sync.set(
     { webhookEndpoint: endpoint, webhookSecret: secret },
     () => {
-      showStatus("Saved", "ok");
+      showStatus("Success!", "ok");
     },
   );
 });
